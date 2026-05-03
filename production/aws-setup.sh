@@ -14,9 +14,13 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs git
 sudo npm install -g pm2
 
-# 2. Clone Repository
-echo "📂 Cloning repository..."
-if [ -d "courier" ]; then
+# 2. Clone/Update Repository
+echo "📂 Managing repository..."
+# Check if we are already inside the courier directory or if it exists
+if [ -d ".git" ] && [ "$(basename $(pwd))" == "courier" ]; then
+    echo "Already inside 'courier' directory. Updating..."
+    git pull origin main
+elif [ -d "courier" ]; then
     echo "Directory 'courier' already exists. Updating..."
     cd courier
     git pull origin main
@@ -57,7 +61,7 @@ npm run build
 # 7. Start/Restart with PM2
 echo "🚀 Launching application with PM2..."
 pm2 delete swiftship-api || true
-pm2 start dist/main.js --name "swiftship-api"
+pm2 start dist/src/main.js --name "swiftship-api"
 pm2 save
 sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $HOME
 

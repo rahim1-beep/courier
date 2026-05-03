@@ -50,7 +50,7 @@ ssh -i "$SSH_KEY" "$USER@$INSTANCE_IP" << EOF
   
   # Restart PM2 process
   echo "Restarting application with PM2..."
-  pm2 restart swiftship-api || pm2 start dist/main.js --name "swiftship-api"
+  pm2 restart swiftship-api || pm2 start dist/src/main.js --name "swiftship-api"
   
   echo "✅ Backend deployment successful!"
 EOF
