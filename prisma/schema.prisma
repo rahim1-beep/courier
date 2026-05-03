@@ -1,0 +1,548 @@
+// ============================================================
+// Courier & Logistics Management System — Prisma Schema
+// 22 Models | 6 Enums | PostgreSQL
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ======================== ENUMS ========================
+
+enum Role {
+  SUPER_ADMIN
+  EMPLOYEE
+  CUSTOMER
+}
+
+enum ShipmentStatus {
+  CREATED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  ON_HOLD
+  RETURNED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  INVALID_IP
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  ONLINE
+}
+
+enum LedgerReferenceType {
+  INVOICE
+  PAYMENT
+  CREDIT_NOTE
+  ADJUSTMENT
+  REFUND
+}
+
+// ======================== AUTH & USERS ========================
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  passwordHash       String
+  role               Role      @default(CUSTOMER)
+  hashedRefreshToken String?
+  isActive           Boolean   @default(true)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  employee  Employee?
+  customer  Customer?
+  auditLogs AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// ======================== BRANCHES ========================
+
+model Branch {
+  id         String   @id @default(uuid())
+  name       String
+  city       String
+  address    String
+  allowedIPs String[] @default([])
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employees    Employee[]
+  inventory    Inventory[]
+  shipments    Shipment[]
+  manifests    Manifest[]
+  ledgerEntries LedgerEntry[]
+  payments     Payment[]
+
+  @@map("branches")
+}
+
+// ======================== EMPLOYEES ========================
+
+model Employee {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  branchId  String
+  name      String
+  contact   String
+  position  String    @default("Agent")
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id])
+  branch      Branch       @relation(fields: [branchId], references: [id])
+  attendance  Attendance[]
+  shipments   Shipment[]
+  inventory   Inventory[]  @relation("UploadedBy")
+  manifests   Manifest[]   @relation("ManifestCreatedBy")
+  invoicesCreated Invoice[] @relation("InvoiceCreatedBy")
+  ledgerEntriesCreated LedgerEntry[] @relation("LedgerCreatedBy")
+  ledgerEntriesVoided  LedgerEntry[] @relation("LedgerVoidedBy")
+  paymentsReceived     Payment[]     @relation("PaymentReceivedBy")
+  creditNotesIssued    CreditNote[]  @relation("CreditNoteIssuedBy")
+
+  @@index([branchId])
+  @@map("employees")
+}
+
+// ======================== ATTENDANCE ========================
+
+model Attendance {
+  id         String           @id @default(uuid())
+  employeeId String
+  loginTime  DateTime         @default(now())
+  ipAddress  String
+  status     AttendanceStatus
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@index([loginTime])
+  @@map("attendance")
+}
+
+// ======================== CUSTOMERS ========================
+
+model Customer {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  name          String
+  companyName   String?
+  address       String
+  contact       String
+  postalCode    String?
+  country       String    @default("PK")
+  customPricing Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id])
+  shipments      Shipment[]
+  invoices       Invoice[]
+  customerTariffs CustomerTariff[]
+  ledgerEntries  LedgerEntry[]
+  payments       Payment[]
+  creditNotes    CreditNote[]
+
+  @@index([userId])
+  @@map("customers")
+}
+
+// ======================== INVENTORY ========================
+
+model Inventory {
+  id            String    @id @default(uuid())
+  inventoryCode String    @unique
+  branchId      String
+  uploadedById  String
+  notes         String?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  branch     Branch          @relation(fields: [branchId], references: [id])
+  uploadedBy Employee        @relation("UploadedBy", fields: [uploadedById], references: [id])
+  items      InventoryItem[]
+
+  @@index([branchId])
+  @@index([inventoryCode])
+  @@map("inventory")
+}
+
+model InventoryItem {
+  id          String  @id @default(uuid())
+  inventoryId String
+  description String
+  weight      Decimal @db.Decimal(10, 2)
+  quantity    Int     @default(1)
+  trackingId  String?
+
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
+  @@map("inventory_items")
+}
+
+// ======================== SERVICES & TARIFFS ========================
+
+model Service {
+  id        String    @id @default(uuid())
+  name      String
+  code      String    @unique
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  countries      ServiceCountry[]
+  tariffs        Tariff[]
+  customerTariffs CustomerTariff[]
+  shipments      Shipment[]
+
+  @@map("services")
+}
+
+model ServiceCountry {
+  id           String  @id @default(uuid())
+  serviceId    String
+  countryCode  String
+  countryName  String
+  isRestricted Boolean @default(false)
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, countryCode])
+  @@index([serviceId])
+  @@map("service_countries")
+}
+
+model Tariff {
+  id            String    @id @default(uuid())
+  serviceId     String
+  countryCode   String
+  pricePerKg    Decimal   @db.Decimal(12, 2)
+  basePrice     Decimal   @db.Decimal(12, 2)
+  minWeight     Decimal   @default(0) @db.Decimal(10, 2)
+  maxWeight     Decimal?  @db.Decimal(10, 2)
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([serviceId, countryCode])
+  @@map("tariffs")
+}
+
+model CustomerTariff {
+  id         String  @id @default(uuid())
+  customerId String
+  serviceId  String
+  pricePerKg Decimal @db.Decimal(12, 2)
+  basePrice  Decimal @db.Decimal(12, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  service  Service  @relation(fields: [serviceId], references: [id])
+
+  @@unique([customerId, serviceId])
+  @@map("customer_tariffs")
+}
+
+// ======================== SHIPMENTS ========================
+
+model Shipment {
+  id          String         @id @default(uuid())
+  trackingId  String         @unique
+  customerId  String
+  employeeId  String
+  branchId    String
+  serviceId   String
+  weight      Decimal        @db.Decimal(10, 2)
+  cost        Decimal        @db.Decimal(12, 2)
+  status      ShipmentStatus @default(CREATED)
+  deletedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  customer   Customer          @relation(fields: [customerId], references: [id])
+  employee   Employee          @relation(fields: [employeeId], references: [id])
+  branch     Branch            @relation(fields: [branchId], references: [id])
+  service    Service           @relation(fields: [serviceId], references: [id])
+  detail     ShipmentDetail?
+  statusLogs ShipmentStatusLog[]
+  pieces     ShipmentPiece[]
+  invoice    Invoice?
+  manifestShipments ManifestShipment[]
+
+  @@index([customerId])
+  @@index([employeeId])
+  @@index([branchId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([trackingId])
+  @@map("shipments")
+}
+
+model ShipmentDetail {
+  id               String @id @default(uuid())
+  shipmentId       String @unique
+  senderName       String
+  senderAddress    String
+  senderContact    String
+  senderPostalCode String?
+  senderCountry    String
+  receiverName     String
+  receiverAddress  String
+  receiverContact  String
+  receiverPostalCode String?
+  receiverCountry  String
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@map("shipment_details")
+}
+
+model ShipmentStatusLog {
+  id         String         @id @default(uuid())
+  shipmentId String
+  status     ShipmentStatus
+  note       String?
+  timestamp  DateTime       @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([timestamp])
+  @@map("shipment_status_logs")
+}
+
+model ShipmentPiece {
+  id          String  @id @default(uuid())
+  shipmentId  String
+  pieceNumber Int
+  weight      Decimal @db.Decimal(10, 2)
+  description String?
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@map("shipment_pieces")
+}
+
+// ======================== MANIFESTS ========================
+
+model Manifest {
+  id              String   @id @default(uuid())
+  referenceNumber String   @unique
+  createdById     String
+  branchId        String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  createdBy Employee          @relation("ManifestCreatedBy", fields: [createdById], references: [id])
+  branch    Branch            @relation(fields: [branchId], references: [id])
+  shipments ManifestShipment[]
+
+  @@index([referenceNumber])
+  @@map("manifests")
+}
+
+model ManifestShipment {
+  manifestId String
+  shipmentId String
+
+  manifest Manifest @relation(fields: [manifestId], references: [id], onDelete: Cascade)
+  shipment Shipment @relation(fields: [shipmentId], references: [id])
+
+  @@id([manifestId, shipmentId])
+  @@map("manifest_shipments")
+}
+
+// ======================== INVOICES ========================
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  shipmentId    String        @unique
+  customerId    String
+  subtotal      Decimal       @db.Decimal(12, 2)
+  taxAmount     Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal       @db.Decimal(12, 2)
+  amountPaid    Decimal       @default(0) @db.Decimal(12, 2)
+  dueDate       DateTime
+  status        InvoiceStatus @default(DRAFT)
+  createdById   String
+  deletedAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  shipment    Shipment     @relation(fields: [shipmentId], references: [id])
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  createdBy   Employee     @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  items       InvoiceItem[]
+  payments    Payment[]
+  creditNotes CreditNote[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  description String
+  amount      Decimal @db.Decimal(12, 2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+// ======================== ACCOUNTING ========================
+
+model LedgerEntry {
+  id              String              @id @default(uuid())
+  entryNumber     String              @unique
+  referenceType   LedgerReferenceType
+  referenceId     String
+  customerId      String?
+  branchId        String
+  description     String
+  debit           Decimal             @default(0) @db.Decimal(12, 2)
+  credit          Decimal             @default(0) @db.Decimal(12, 2)
+  runningBalance  Decimal             @default(0) @db.Decimal(12, 2)
+  currency        String              @default("PKR")
+  createdById     String
+  note            String?
+  isVoid          Boolean             @default(false)
+  voidedById      String?
+  voidedAt        DateTime?
+  voidReason      String?
+  createdAt       DateTime            @default(now())
+
+  customer  Customer? @relation(fields: [customerId], references: [id])
+  branch    Branch    @relation(fields: [branchId], references: [id])
+  createdBy Employee  @relation("LedgerCreatedBy", fields: [createdById], references: [id])
+  voidedBy  Employee? @relation("LedgerVoidedBy", fields: [voidedById], references: [id])
+
+  @@index([customerId])
+  @@index([referenceType])
+  @@index([createdAt])
+  @@index([isVoid])
+  @@map("ledger_entries")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  paymentNumber   String        @unique
+  customerId      String
+  invoiceId       String?
+  amount          Decimal       @db.Decimal(12, 2)
+  method          PaymentMethod
+  referenceNumber String?
+  receivedById    String
+  branchId        String
+  receivedAt      DateTime
+  note            String?
+  createdAt       DateTime      @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id])
+  receivedBy Employee @relation("PaymentReceivedBy", fields: [receivedById], references: [id])
+  branch     Branch   @relation(fields: [branchId], references: [id])
+
+  @@index([customerId])
+  @@index([invoiceId])
+  @@index([receivedAt])
+  @@map("payments")
+}
+
+model CreditNote {
+  id               String   @id @default(uuid())
+  creditNoteNumber String   @unique
+  customerId       String
+  invoiceId        String
+  reason           String
+  amount           Decimal  @db.Decimal(12, 2)
+  issuedById       String
+  createdAt        DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id])
+  issuedBy Employee @relation("CreditNoteIssuedBy", fields: [issuedById], references: [id])
+
+  @@index([customerId])
+  @@index([invoiceId])
+  @@map("credit_notes")
+}
+
+// ======================== AUDIT & NOTIFICATIONS ========================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  timestamp DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}

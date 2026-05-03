@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Mode Palette (Default) */
+    --bg-canvas: #F4F5F7;
+    --bg-base: #F8F9FB;
+    --bg-surface: #FFFFFF;
+    --bg-elevated: #FFFFFF;
+    --bg-overlay: #FFFFFF;
+    --bg-glass: rgba(255, 255, 255, 0.80);
+    --bg-glass-hover: rgba(255, 255, 255, 0.95);
+
+    --brand-50: #EEF2FF;
+    --brand-100: #E0E7FF;
+    --brand-300: #A5B4FC;
+    --brand-400: #818CF8;
+    --brand-500: #6366F1;
+    --brand-600: #4F46E5;
+    --brand-700: #4338CA;
+    --brand-glow: rgba(99, 102, 241, 0.15);
+    --brand-subtle: rgba(99, 102, 241, 0.06);
+
+    --accent-400: #34D399;
+    --accent-500: #10B981;
+    --accent-glow: rgba(16, 185, 129, 0.25);
+    --accent-subtle: rgba(16, 185, 129, 0.08);
+
+    --sky-400: #38BDF8;
+    --sky-500: #0EA5E9;
+    --sky-glow: rgba(14, 165, 233, 0.25);
+    --sky-subtle: rgba(14, 165, 233, 0.08);
+
+    --amber-400: #FBBF24;
+    --amber-500: #F59E0B;
+    --amber-glow: rgba(245, 158, 11, 0.25);
+    --amber-subtle: rgba(245, 158, 11, 0.08);
+
+    --rose-400: #FB7185;
+    --rose-500: #F43F5E;
+    --rose-glow: rgba(244, 63, 94, 0.25);
+    --rose-subtle: rgba(244, 63, 94, 0.08);
+
+    --violet-400: #A78BFA;
+    --violet-500: #8B5CF6;
+    --violet-glow: rgba(139, 92, 246, 0.25);
+    --violet-subtle: rgba(139, 92, 246, 0.08);
+
+    --text-primary: #111827;
+    --text-secondary: #4B5563;
+    --text-muted: #9CA3AF;
+    --text-inverse: #0D1117;
+
+    --border-subtle: rgba(0, 0, 0, 0.05);
+    --border-default: rgba(0, 0, 0, 0.10);
+    --border-strong: rgba(0, 0, 0, 0.18);
+    --border-focus: rgba(99, 102, 241, 0.50);
+    --border-brand: #6366F1;
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+    --shadow-brand: 0 4px 16px rgba(99,102,241,0.25);
+  }
+
+  [data-theme="dark"] {
+    --bg-canvas: #080C14;
+    --bg-base: #0D1117;
+    --bg-surface: #161B27;
+    --bg-elevated: #1C2333;
+    --bg-overlay: #242C3D;
+    --bg-glass: rgba(255, 255, 255, 0.03);
+    --bg-glass-hover: rgba(255, 255, 255, 0.06);
+
+    --brand-glow: rgba(99, 102, 241, 0.35);
+    --brand-subtle: rgba(99, 102, 241, 0.08);
+
+    --text-primary: #F0F4FF;
+    --text-secondary: #8B95B0;
+    --text-muted: #4B5470;
+    --text-inverse: #0D1117;
+
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --border-focus: rgba(99, 102, 241, 0.60);
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.4);
+    --shadow-brand: 0 4px 20px rgba(99,102,241,0.4);
+  }
+
+  body {
+    @apply bg-canvas text-primary antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  *, *::before, *::after {
+    transition: background-color 300ms ease,
+                border-color 300ms ease,
+                box-shadow 300ms ease,
+                color 150ms ease;
+  }
+  
+  [data-framer-motion], button:active, input:focus, select:focus, textarea:focus {
+    transition: none !important;
+  }
+}
+
+@layer components {
+  /* Typography */
+  .text-title {
+    @apply text-[24px] font-bold text-primary tracking-tight;
+  }
+  
+  .text-heading {
+    @apply text-[16px] font-semibold text-primary;
+  }
+
+  .text-label {
+    @apply text-[13px] font-medium text-secondary;
+  }
+  
+  .text-mono {
+    @apply font-mono text-[13px];
+  }
+
+  /* Cards */
+  .v2-card {
+    @apply bg-surface border border-default rounded-xl shadow-md;
+  }
+  .v2-card:hover {
+    @apply border-strong shadow-lg transform -translate-y-[2px];
+  }
+
+  /* Buttons */
+  .v2-btn-primary {
+    @apply bg-gradient-to-br from-[#6366F1] to-[#4F46E5] text-white border-none shadow-brand rounded-lg px-4 py-2 font-semibold;
+  }
+  .v2-btn-primary:hover {
+    @apply from-[#818CF8] to-[#6366F1] shadow-[0_6px_24px_rgba(99,102,241,0.5)] transform -translate-y-[1px];
+  }
+  .v2-btn-primary:active {
+    @apply scale-[0.97] shadow-brand;
+  }
+
+  .v2-btn-ghost {
+    @apply bg-transparent hover:bg-glass border border-transparent hover:border-default text-secondary hover:text-primary rounded-lg px-4 py-2 font-medium;
+  }
+
+  /* Inputs */
+  .v2-input {
+    @apply bg-canvas border border-default text-primary rounded-lg px-4 py-2 w-full focus:outline-none focus:border-focus focus:ring-[3px] focus:ring-brand-glow;
+  }
+
+  /* Glass Panels */
+  .v2-glass {
+    @apply bg-[rgba(255,255,255,0.90)] dark:bg-[rgba(22,27,39,0.85)] backdrop-blur-[16px] saturate-[160%] dark:saturate-[180%] border border-default shadow-lg;
+  }
+
+  /* Badges */
+  .v2-badge {
+    @apply rounded-lg px-2.5 py-1 text-[12px] font-medium inline-flex items-center;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
