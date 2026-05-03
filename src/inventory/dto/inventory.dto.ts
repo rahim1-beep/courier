@@ -38,6 +38,11 @@ export class CreateInventoryDto {
   @IsString()
   @IsNotEmpty()
   branchId: string;
+  
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  customerId: string;
 
   @ApiPropertyOptional()
   @IsOptional()

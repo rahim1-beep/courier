@@ -168,6 +168,7 @@ model Customer {
   user           User            @relation(fields: [userId], references: [id])
   shipments      Shipment[]
   invoices       Invoice[]
+  inventory      Inventory[]
   customerTariffs CustomerTariff[]
   ledgerEntries  LedgerEntry[]
   payments       Payment[]
@@ -182,6 +183,7 @@ model Customer {
 model Inventory {
   id            String    @id @default(uuid())
   inventoryCode String    @unique
+  customerId    String
   branchId      String
   uploadedById  String
   notes         String?
@@ -189,11 +191,13 @@ model Inventory {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  customer   Customer        @relation(fields: [customerId], references: [id])
   branch     Branch          @relation(fields: [branchId], references: [id])
   uploadedBy Employee        @relation("UploadedBy", fields: [uploadedById], references: [id])
   items      InventoryItem[]
 
   @@index([branchId])
+  @@index([customerId])
   @@index([inventoryCode])
   @@map("inventory")
 }

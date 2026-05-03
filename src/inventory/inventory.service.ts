@@ -17,8 +17,17 @@ export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(query: PaginationQueryDto, branchId?: string) {
-    const where: Record<string, unknown> = { deletedAt: null };
+    const where: any = { deletedAt: null };
     if (branchId) where.branchId = branchId;
+    if (query.search) {
+      where.OR = [
+        { inventoryCode: { contains: query.search, mode: 'insensitive' } },
+        { customer: { name: { contains: query.search, mode: 'insensitive' } } },
+      ];
+    }
+    // Handle customerId filter if passed via custom query or part of query object
+    const customerId = (query as any).customerId;
+    if (customerId) where.customerId = customerId;
 
     const { skip, take } = buildPaginationArgs(query);
     const [data, total] = await Promise.all([
@@ -29,6 +38,7 @@ export class InventoryService {
         orderBy: { createdAt: query.sortOrder || 'desc' },
         include: {
           branch: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true } },
           uploadedBy: { select: { id: true, name: true } },
           _count: { select: { items: true } },
         },
@@ -58,6 +68,7 @@ export class InventoryService {
       data: {
         inventoryCode: code,
         branchId: dto.branchId,
+        customerId: dto.customerId,
         uploadedById: employeeId,
         notes: dto.notes,
         items: {
@@ -84,6 +95,7 @@ export class InventoryService {
       trackingId?: string;
     }>,
     branchId: string,
+    customerId: string,
     employeeId: string,
     maxRows: number,
   ) {
@@ -114,6 +126,7 @@ export class InventoryService {
       data: {
         inventoryCode: generateInventoryCode(),
         branchId,
+        customerId,
         uploadedById: employeeId,
         notes: `Bulk upload: ${validItems.length} items`,
         items: {

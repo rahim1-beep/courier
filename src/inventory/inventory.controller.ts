@@ -34,7 +34,9 @@ export class InventoryController {
   findAll(
     @Query() query: PaginationQueryDto,
     @Query('branchId') branchId?: string,
+    @Query('customerId') customerId?: string,
   ) {
+    if (customerId) (query as any).customerId = customerId;
     return this.inventoryService.findAll(query, branchId);
   }
 
@@ -67,6 +69,7 @@ export class InventoryController {
   async bulkUpload(
     @UploadedFile() file: Express.Multer.File,
     @Query('branchId') branchId: string,
+    @Query('customerId') customerId: string,
     @CurrentUser('userId') userId: string,
   ) {
     if (!file) throw new BadRequestException('File is required');
@@ -101,6 +104,6 @@ export class InventoryController {
       trackingId: r.trackingId || r.TrackingId || undefined,
     }));
 
-    return this.inventoryService.bulkUpload(rows, branchId, employee.id, maxRows);
+    return this.inventoryService.bulkUpload(rows, branchId, customerId, employee.id, maxRows);
   }
 }
