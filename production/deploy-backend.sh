@@ -39,9 +39,10 @@ ssh -i "$SSH_KEY" "$USER@$INSTANCE_IP" << EOF
   echo "Installing dependencies..."
   npm install --production
   
-  # Run Prisma Migrations
-  echo "Running database migrations..."
-  npx prisma migrate deploy
+  # Synchronize Database
+  echo "Synchronizing database schema..."
+  npx prisma db push --accept-data-loss
+  npx prisma generate
   
   # Build the application
   echo "Building NestJS application..."
