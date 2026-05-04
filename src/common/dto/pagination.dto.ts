@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsInt, Min, Max, IsIn } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsIn, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { DEFAULT_PAGE, DEFAULT_LIMIT, MAX_LIMIT } from '../constants';
 
@@ -23,6 +23,11 @@ export class PaginationQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   sortBy?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @ApiPropertyOptional({ enum: ['asc', 'desc'], default: 'desc' })
   @IsOptional()
