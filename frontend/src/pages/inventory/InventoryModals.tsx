@@ -257,8 +257,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({ isOpen, onClos
         </div>
 
         <FileUploadZone
-          onFileSelect={setFile}
-          acceptedTypes={['text/csv', 'application/vnd.ms-excel']}
+          onFileSelect={(f) => setFile(f)}
+          accept=".csv, application/vnd.ms-excel"
           maxSizeMB={5}
         />
       </div>
